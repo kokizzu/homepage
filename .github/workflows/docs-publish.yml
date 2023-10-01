@@ -4,39 +4,25 @@ on:
   push:
     tags: [ 'v*.*.*' ]
     branches: ['main']
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
   pull_request:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  changes:
-    name: Detect Changes
-    runs-on: ubuntu-latest
-    # Required permissions
-    permissions:
-      pull-requests: read
-    # Set job outputs to values from filter step
-    outputs:
-      docs: ${{ steps.filter.outputs.docs }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          filters: |
-            docs:
-              - 'docs/**'
   test:
-    needs: changes
     name: Test Build
-    if: needs.changes.outputs.docs == 'true' && github.repository == 'benphelps/homepage' && github.event_name == 'pull_request'
+    if: github.repository == 'benphelps/homepage' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
@@ -49,13 +35,12 @@ jobs:
             mkdocs-material-
       - run: sudo apt-get install pngquant
       - run: pip install mike
-      - run: pip install git+https://${GH_TOKEN}@github.com/benphelps/mkdocs-material-insiders.git
+      - run: pip install mkdocs-material
       - name: Test Docs Build
-        run: MKINSIDERS=true mkdocs build
+        run: MKINSIDERS=false mkdocs build
   deploy:
-    needs: changes
     name: Build & Deploy 
-    if: needs.changes.outputs.docs == 'true' && github.repository == 'benphelps/homepage' && github.event_name != 'pull_request'
+    if: github.repository == 'benphelps/homepage' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
